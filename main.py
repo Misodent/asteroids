@@ -4,6 +4,7 @@ from logger import log_state, log_event
 from player import Player
 from asteroid import Asteroid
 from asteroidfield import AsteroidField
+from shot import Shot
 
 def main():
     pygame.init()
@@ -20,11 +21,13 @@ def main():
     updatable = pygame.sprite.Group()
     drawable = pygame.sprite.Group()
     asteroids = pygame.sprite.Group()
+    shots = pygame.sprite.Group()
 
     # Objects
     Player.containers = (updatable, drawable)
     Asteroid.containers = (updatable, drawable, asteroids)
     AsteroidField.containers = (updatable)
+    Shot.containers = (updatable, drawable, shots)
 
     # Instantiate player at center of screen
     x = SCREEN_WIDTH / 2
@@ -39,6 +42,14 @@ def main():
             if event.type == pygame.QUIT:
                 return
 
+        if (player.position.x < 0 
+        or player.position.x > SCREEN_WIDTH
+        or player.position.y < 0
+        or player.position.y > SCREEN_HEIGHT):
+            log_event("player_out_of_bounds")
+            print("Out of bounds -- Game over!")
+            sys.exit()
+
         screen.fill("black")
 
         # Update and draw
@@ -48,10 +59,15 @@ def main():
         
         # Asteroid crashing
         for asteroid in asteroids:
-            if asteroid.collides_with(player):
+            if player.collides_with(asteroid):
                 log_event("player_hit")
                 print("Game over!")
                 sys.exit()
+            for shot in shots:
+                if shot.collides_with(asteroid):
+                    log_event("asteroid_shot")
+                    shot.kill()
+                    asteroid.split()
 
         # Fps
         pygame.display.flip()
