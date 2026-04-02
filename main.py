@@ -1,6 +1,7 @@
 import pygame, sys
-from constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from constants import *
 from logger import log_state, log_event
+from circleshape import CircleShape
 from player import Player
 from asteroid import Asteroid
 from asteroidfield import AsteroidField
@@ -12,22 +13,25 @@ def main():
     print(f"Starting Asteroids with pygame version: {pygame.version.ver}")
     print(f"Screen width: {SCREEN_WIDTH}")
     print(f"Screen height: {SCREEN_HEIGHT}")
-
+    print(f"{PLAYER_LIVES} lives remaining!")
+ 
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
     dt = 0
 
     # Groups
     updatable = pygame.sprite.Group()
-    drawable = pygame.sprite.Group()
+    drawables = pygame.sprite.Group()
+    wrappables = pygame.sprite.Group()
     asteroids = pygame.sprite.Group()
     shots = pygame.sprite.Group()
 
     # Objects
-    Player.containers = (updatable, drawable)
-    Asteroid.containers = (updatable, drawable, asteroids)
+    CircleShape.containers = (updatable, drawables)
+    Player.containers = (updatable, drawables, wrappables)
+    Asteroid.containers = (updatable, drawables, asteroids, wrappables)
     AsteroidField.containers = (updatable)
-    Shot.containers = (updatable, drawable, shots)
+    Shot.containers = (updatable, drawables, shots)
 
     # Instantiate player at center of screen
     x = SCREEN_WIDTH / 2
@@ -42,30 +46,42 @@ def main():
             if event.type == pygame.QUIT:
                 return
 
-        if (player.position.x < 0 
-        or player.position.x > SCREEN_WIDTH
-        or player.position.y < 0
-        or player.position.y > SCREEN_HEIGHT):
-            log_event("player_out_of_bounds")
-            print("Out of bounds -- Game over!")
-            sys.exit()
-
         screen.fill("black")
 
         # Update and draw
         updatable.update(dt)
-        for drawable_element in drawable:
-            drawable_element.draw(screen)
+        for drawable in drawables:
+            drawable.draw(screen)
+
+        for wrappable in wrappables:
+            if wrappable.position.x < 0:
+                wrappable.position.x = SCREEN_WIDTH
+            if wrappable.position.y < 0:
+                 wrappable.position.y = SCREEN_HEIGHT
+            if wrappable.position.x > SCREEN_WIDTH:
+                wrappable.position.x = 0
+            if wrappable.position.y > SCREEN_HEIGHT:
+                wrappable.position.y = 0
         
         # Asteroid crashing
         for asteroid in asteroids:
             if player.collides_with(asteroid):
                 log_event("player_hit")
-                print("Game over!")
-                sys.exit()
+                player.explode()
+                player.lives -= 1
+                if player.lives > 0:
+                    player.respawn()
+                else:
+                    player.game_over()
             for shot in shots:
                 if shot.collides_with(asteroid):
                     log_event("asteroid_shot")
+                    points_earned = round(max(
+                        ASTEROID_MAX_POINTS - ((5/2) * asteroid.radius - 50), 
+                        ASTEROID_MIN_POINTS
+                        ))
+                    player.points += points_earned
+                    print(f"+{points_earned} points!")
                     shot.kill()
                     asteroid.split()
 

@@ -1,4 +1,5 @@
-import pygame
+import pygame, random
+from constants import *
 
 # Base class for game objects
 class CircleShape(pygame.sprite.Sprite):
@@ -14,12 +15,10 @@ class CircleShape(pygame.sprite.Sprite):
         self.radius = radius
 
     def draw(self, screen):
-        # must override
-        pass
+        pygame.draw.circle(screen, "white", self.position, self.radius, LINE_WIDTH)
 
     def update(self, dt):
-        # must override
-        pass
+        self.position += self.velocity * dt
 
     def collides_with(self, other):
         distance = self.position.distance_to(other.position)
@@ -27,3 +26,14 @@ class CircleShape(pygame.sprite.Sprite):
             return False
         
         return True
+
+    def explode(self):
+        for i in range(EXPLOSION_PARTICLES):
+            angle = random.uniform(0, 360)
+            new_velocity = self.velocity.rotate(angle)
+            explosion_particle = CircleShape(
+                self.position.x, 
+                self.position.y, 
+                EXPLOSION_PARTICLE_SIZE
+                )
+            explosion_particle.velocity = new_velocity * 1.2
