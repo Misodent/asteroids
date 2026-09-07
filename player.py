@@ -1,29 +1,22 @@
 import pygame, sys
 from circleshape import CircleShape
+from triangleshape import TriangleShape
 from constants import *
 from shot import Shot
+from rocket import Rocket
 
-class Player(CircleShape):
+class Player(TriangleShape):
     def __init__(self, x, y):
         super().__init__(x, y, PLAYER_RADIUS)
         self.rotation = 0
         self.shot_cooldown_timer = 0
+        self.rocket_cooldown_timer = 0
         self.points = 0
         self.lives = PLAYER_LIVES
         self.__last_moved = pygame.time.get_ticks()
         self.speed = PLAYER_DEFAULT_SPEED
 
     # in the Player class
-    def triangle(self):
-        forward = pygame.Vector2(0, 1).rotate(self.rotation)
-        right = pygame.Vector2(0, 1).rotate(self.rotation + 90) * self.radius / 1.5
-        a = self.position + forward * self.radius
-        b = self.position - forward * self.radius - right
-        c = self.position - forward * self.radius + right
-        return [a, b, c]
-
-    def draw(self, screen):
-        pygame.draw.polygon(screen, "white", self.triangle(), LINE_WIDTH)
 
     def rotate(self, dt):
         self.rotation += PLAYER_TURN_SPEED * dt
@@ -33,6 +26,8 @@ class Player(CircleShape):
 
         if self.shot_cooldown_timer > 0:
             self.shot_cooldown_timer -= dt
+        if self.rocket_cooldown_timer > 0:
+            self.rocket_cooldown_timer -= dt
 
         if keys[pygame.K_a]:
             self.rotate(-dt)
@@ -44,6 +39,8 @@ class Player(CircleShape):
             self.move(-dt)
         if keys[pygame.K_SPACE]:
             self.shoot()
+        if keys[pygame.K_r]:
+            self.rocket()
 
     def move(self, dt):
         movement_speed = self.speed
@@ -71,6 +68,18 @@ class Player(CircleShape):
         rotated_vector = unit_vector.rotate(self.rotation)
         rotated_with_speed_vector = rotated_vector * PLAYER_SHOOT_SPEED
         shot.velocity = rotated_with_speed_vector
+
+    def rocket(self):
+        if self.rocket_cooldown_timer > 0:
+            return
+
+        self.rocket_cooldown_timer = ROCKET_COOLDOWN
+        rocket = Rocket(self.position.x, self.position.y)
+        rocket.rotation = self.rotation
+        unit_vector = pygame.Vector2(0, 1)
+        rotated_vector = unit_vector.rotate(self.rotation)
+        rotated_with_speed_vector = rotated_vector * ROCKET_SPEED
+        rocket.velocity = rotated_with_speed_vector
 
     def game_over(self):
         print("Game over!")

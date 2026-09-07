@@ -6,6 +6,7 @@ from player import Player
 from asteroid import Asteroid
 from asteroidfield import AsteroidField
 from shot import Shot
+from rocket import Rocket
 
 def main():
     pygame.init()
@@ -23,6 +24,7 @@ def main():
     updatable = pygame.sprite.Group()
     drawables = pygame.sprite.Group()
     wrappables = pygame.sprite.Group()
+    despawn = pygame.sprite.Group()
     asteroids = pygame.sprite.Group()
     shots = pygame.sprite.Group()
 
@@ -31,7 +33,8 @@ def main():
     Player.containers = (updatable, drawables, wrappables)
     Asteroid.containers = (updatable, drawables, asteroids, wrappables)
     AsteroidField.containers = (updatable)
-    Shot.containers = (updatable, drawables, shots)
+    Shot.containers = (updatable, drawables, despawn, shots)
+    Rocket.containers = (updatable, drawables, despawn, shots)
 
     # Instantiate player at center of screen
     x = SCREEN_WIDTH / 2
@@ -62,6 +65,15 @@ def main():
                 wrappable.position.x = 0
             if wrappable.position.y > SCREEN_HEIGHT:
                 wrappable.position.y = 0
+
+        for despawnable in despawn:
+            if (
+                despawnable.position.x < 0 or
+                despawnable.position.x > SCREEN_WIDTH or
+                despawnable.position.y < 0 or
+                despawnable.position.y > SCREEN_HEIGHT
+            ):
+                despawnable.kill()
         
         # Asteroid crashing
         for asteroid in asteroids:
@@ -83,7 +95,11 @@ def main():
                     player.points += points_earned
                     print(f"+{points_earned} points!")
                     shot.kill()
-                    asteroid.split()
+                    asteroid.explode()
+                    if isinstance(shot, Rocket):
+                        asteroid.kill()
+                    else:
+                        asteroid.split()
 
         # Fps
         pygame.display.flip()
